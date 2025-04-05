@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi Calculator</title>
+    <!-- Include QRCode.js for QR Code Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            scroll-behavior: smooth;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.dark-theme {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            background-color: #2c3e50;
+            padding: 20px;
+            margin: 0;
+            font-size: 2.5em;
+        }
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Two calculators per row */
+            gap: 20px;
+            padding: 20px;
+            background-color: #27ae60; /* Green background */
+            min-height: 100vh;
+        }
+        .calculator-button {
+            background-color: #fff;
+            border: 2px solid #000;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.3s;
+        }
+        .calculator-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .settings-icon {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: #3498db;
+            color: #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        .calculator-section, .settings-section {
+            padding: 40px 20px;
+            display: none;
+            background-color: #ecf0f1;
+        }
+        .calculator-section.active, .settings-section.active {
+            display: block;
+        }
+        .calculator-box, .settings-box {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 400px;
+            margin: 0 auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .calculator-box h2, .settings-box h2 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 2.5em;
+            font-weight: bold;
+            text-align: center;
+        }
+        .calculator-box label, .settings-box label {
+            display: block;
+            margin: 15px 0 5px;
+            font-size: 1.2em;
+            color: #34495e;
+        }
+        .calculator-box input, .calculator-box textarea, .settings-box select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1.1em;
+            box-sizing: border-box;
+        }
+        .calculator-box button, .settings-box button {
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            width: 48%;
+            border-radius: 5px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 1%;
+        }
+        .calculator-box button:hover, .settings-box button:hover {
+            background-color: #2980b9;
+        }
+        .calculator-box .reset-button {
+            background-color: #e74c3c;
+        }
+        .calculator-box .reset-button:hover {
+            background-color: #c0392b;
+        }
+        .calculator-box p {
+            margin: 15px 0 0;
+            font-size: 1.5em;
+            color: #e74c3c;
+            text-align: center;
+            font-weight: bold;
+            background-color: #f9ebeb;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #qrCode {
+            margin-top: 15px;
+            text-align: center;
+        }
+        .back-button {
+            display: block;
+            text-align: center;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #e74c3c;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 1.2em;
+            transition: background-color 0.3s;
+        }
+        .back-button:hover {
+            background-color: #c0392b;
+        }
+        /* Simple Calculator Specific Styles */
+        #simple-calc-result {
+            font-size: 2em;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: right;
+        }
+        .simple-calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+        }
+        .simple-calc-buttons button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Landing Page with Calculator Buttons -->
+    <div id="landing-page">
+        <h1>Multi Calculator</h1>
+        <div class="calculator-grid">
+            <div class="calculator-button" style="background-color: #f1c40f;" onclick="showSection('simple-calc-section')">Simple Calculator</div>
+            <div class="calculator-button" style="background-color: #e74c3c;" onclick="showSection('percentage-section')">Percentage Calculator</div>
+            <div class="calculator-button" style="background-color: #3498db;" onclick="showSection('gst-section')">GST Calculator</div>
+            <div class="calculator-button" style="background-color: #2ecc71;" onclick="showSection('emi-section')">EMI Calculator</div>
+            <div class="calculator-button" style="background-color: #9b59b6;" onclick="showSection('age-section')">Age Calculator</div>
+            <div class="calculator-button" style="background-color: #e67e22;" onclick="showSection('date-diff-section')">Date Difference Calculator</div>
+            <div class="calculator-button" style="background-color: #1abc9c;" onclick="showSection('profit-loss-section')">Profit Loss Calculator</div>
+            <div class="calculator-button" style="background-color: #34495e;" onclick="showSection('area-section')">Area Calculator</div>
+            <div class="calculator-button" style="background-color: #d35400;" onclick="showSection('ecom-profit-section')">eCommerce Profit Calculator</div>
+            <div class="calculator-button" style="background-color: #7f8c8d;" onclick="showSection('compound-interest-section')">Compound Interest Calculator</div>
+            <div class="calculator-button" style="background-color: #c0392b;" onclick="showSection('keyword-density-section')">Keyword Density Checker</div>
+            <div class="calculator-button" style="background-color: #95a5a6;" onclick="showSection('qr-code-section')">QR Code Generator</div>
+        </div>
+    </div>
+
+    <!-- Settings Section -->
+    <div id="settings-section" class="settings-section">
+        <div class="settings-box">
+            <h2>Settings</h2>
+            <label for="language">Select Language:</label>
+            <select id="language" onchange="changeLanguage()">
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+            </select>
+            <label for="currency">Select Currency:</label>
+            <select id="currency" onchange="changeCurrency()">
+                <option value="USD">USD ($)</option>
+                <option value="INR">INR (₹)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+            </select>
+            <label for="theme">Select Theme:</label>
+            <select id="theme" onchange="changeTheme()">
+                <option value="light">Light Theme</option>
+                <option value="dark">Dark Theme</option>
+            </select>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')">Back to Calculators</a>
+    </div>
+
+    <!-- Calculator Sections -->
+    <!-- Simple Calculator -->
+    <div id="simple-calc-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="simple-calc">Simple Calculator</h2>
+            <div id="simple-calc-result">0</div>
+            <div class="simple-calc-buttons">
+                <button onclick="appendToDisplay('7')">7</button>
+                <button onclick="appendToDisplay('8')">8</button>
+                <button onclick="appendToDisplay('9')">9</button>
+                <button onclick="appendToDisplay('/')">/</button>
+                <button onclick="appendToDisplay('4')">4</button>
+                <button onclick="appendToDisplay('5')">5</button>
+                <button onclick="appendToDisplay('6')">6</button>
+                <button onclick="appendToDisplay('*')">*</button>
+                <button onclick="appendToDisplay('1')">1</button>
+                <button onclick="appendToDisplay('2')">2</button>
+                <button onclick="appendToDisplay('3')">3</button>
+                <button onclick="appendToDisplay('-')">-</button>
+                <button onclick="appendToDisplay('0')">0</button>
+                <button onclick="appendToDisplay('.')">.</button>
+                <button onclick="calculateSimpleCalc()">=</button>
+                <button onclick="appendToDisplay('+')">+</button>
+            </div>
+            <button onclick="resetSimpleCalc()" class="reset-button" data-lang-key="reset">Reset</button>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- Percentage Calculator -->
+    <div id="percentage-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="percentage-calc">Percentage Calculator</h2>
+            <label for="percent-value" data-lang-key="value">Value:</label>
+            <input type="number" id="percent-value" placeholder="Enter value">
+            <label for="percent-rate" data-lang-key="percentage">Percentage (%):</label>
+            <input type="number" id="percent-rate" placeholder="Enter percentage">
+            <button onclick="calculatePercentage()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetPercentage()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="percent-result">0</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- GST Calculator -->
+    <div id="gst-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="gst-calc">GST Calculator</h2>
+            <label for="gst-amount" data-lang-key="amount">Amount:</label>
+            <input type="number" id="gst-amount" placeholder="Enter amount">
+            <label for="gst-rate" data-lang-key="gst-rate">GST Rate (%):</label>
+            <input type="number" id="gst-rate" placeholder="Enter GST rate">
+            <button onclick="calculateGST()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetGST()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="gst-result">0</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- EMI Calculator -->
+    <div id="emi-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="emi-calc">EMI Calculator</h2>
+            <label for="emi-principal" data-lang-key="loan-amount">Loan Amount:</label>
+            <input type="number" id="emi-principal" placeholder="Enter loan amount">
+            <label for="emi-rate" data-lang-key="interest-rate">Interest Rate (% per year):</label>
+            <input type="number" id="emi-rate" placeholder="Enter interest rate">
+            <label for="emi-tenure" data-lang-key="tenure">Tenure (months):</label>
+            <input type="number" id="emi-tenure" placeholder="Enter tenure in months">
+            <button onclick="calculateEMI()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetEMI()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="emi-result">0</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- Age Calculator -->
+    <div id="age-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="age-calc">Age Calculator</h2>
+            <label for="birth-date" data-lang-key="birth-date">Birth Date:</label>
+            <input type="date" id="birth-date">
+            <button onclick="calculateAge()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetAge()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="age-result">0 years, 0 months, 0 days</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- Date Difference Calculator -->
+    <div id="date-diff-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="date-diff-calc">Date Difference Calculator</h2>
+            <label for="date1" data-lang-key="start-date">Start Date:</label>
+            <input type="date" id="date1">
+            <label for="date2" data-lang-key="end-date">End Date:</label>
+            <input type="date" id="date2">
+            <button onclick="calculateDateDifference()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetDateDiff()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="date-diff-result">0 days</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- Profit Loss Calculator -->
+    <div id="profit-loss-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="profit-loss-calc">Profit Loss Calculator</h2>
+            <label for="cost-price" data-lang-key="cost-price">Cost Price:</label>
+            <input type="number" id="cost-price" placeholder="Enter cost price">
+            <label for="selling-price" data-lang-key="selling-price">Selling Price:</label>
+            <input type="number" id="selling-price" placeholder="Enter selling price">
+            <button onclick="calculateProfitLoss()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetProfitLoss()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="profit-loss-result">0</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- Area Calculator -->
+    <div id="area-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="area-calc">Area Calculator (Rectangle)</h2>
+            <label for="area-length" data-lang-key="length">Length:</label>
+            <input type="number" id="area-length" placeholder="Enter length">
+            <label for="area-width" data-lang-key="width">Width:</label>
+            <input type="number" id="area-width" placeholder="Enter width">
+            <button onclick="calculateArea()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetArea()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="area-result">0 sq units</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- eCommerce Profit Calculator -->
+    <div id="ecom-profit-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="ecom-profit-calc">eCommerce Profit Calculator</h2>
+            <label for="ecom-revenue" data-lang-key="revenue">Revenue:</label>
+            <input type="number" id="ecom-revenue" placeholder="Enter revenue">
+            <label for="ecom-cost" data-lang-key="total-cost">Total Cost:</label>
+            <input type="number" id="ecom-cost" placeholder="Enter total cost">
+            <button onclick="calculateEcommerceProfit()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetEcomProfit()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="ecom-profit-result">0</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- Compound Interest Calculator -->
+    <div id="compound-interest-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="compound-interest-calc">Compound Interest Calculator</h2>
+            <label for="ci-principal" data-lang-key="principal-amount">Principal Amount:</label>
+            <input type="number" id="ci-principal" placeholder="Enter principal amount">
+            <label for="ci-rate" data-lang-key="annual-interest-rate">Annual Interest Rate (%):</label>
+            <input type="number" id="ci-rate" placeholder="Enter interest rate">
+            <label for="ci-time" data-lang-key="time-years">Time (years):</label>
+            <input type="number" id="ci-time" placeholder="Enter time in years">
+            <label for="ci-compound" data-lang-key="compounds-per-year">Compounds per Year:</label>
+            <input type="number" id="ci-compound" placeholder="Enter compounds per year">
+            <button onclick="calculateCompoundInterest()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetCompoundInterest()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="ci-result">0</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- Keyword Density Checker -->
+    <div id="keyword-density-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="keyword-density-calc">Keyword Density Checker</h2>
+            <label for="keyword-text" data-lang-key="text">Text:</label>
+            <textarea id="keyword-text" rows="5" placeholder="Enter your text"></textarea>
+            <label for="keyword" data-lang-key="keyword">Keyword:</label>
+            <input type="text" id="keyword" placeholder="Enter keyword">
+            <button onclick="calculateKeywordDensity()" data-lang-key="calculate">Calculate</button>
+            <button onclick="resetKeywordDensity()" class="reset-button" data-lang-key="reset">Reset</button>
+            <p>Result: <span id="keyword-density-result">0%</span></p>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- QR Code Generator -->
+    <div id="qr-code-section" class="calculator-section">
+        <div class="calculator-box">
+            <h2 data-lang-key="qr-code-calc">QR Code Generator</h2>
+            <label for="qr-text" data-lang-key="text-url">Text/URL:</label>
+            <input type="text" id="qr-text" placeholder="Enter text or URL">
+            <button onclick="generateQRCode()" data-lang-key="generate">Generate</button>
+            <button onclick="resetQRCode()" class="reset-button" data-lang-key="reset">Reset</button>
+            <div id="qrCode"></div>
+        </div>
+        <a href="#" class="back-button" onclick="showSection('landing-page')" data-lang-key="back">Back to Calculators</a>
+    </div>
+
+    <!-- Settings Icon -->
+    <div class="settings-icon" onclick="showSection('settings-section')">⚙️</div>
+
+    <script>
+        // Language Translations
+        const translations = {
+            en: {
+                "simple-calc": "Simple Calculator",
+                "percentage-calc": "Percentage Calculator",
+                "gst-calc": "GST Calculator",
+                "emi-calc": "EMI Calculator",
+                "age-calc": "Age Calculator",
+                "date-diff-calc": "Date Difference Calculator",
+                "profit-loss-calc": "Profit Loss Calculator",
+                "area-calc": "Area Calculator (Rectangle)",
+                "ecom-profit-calc": "eCommerce Profit Calculator",
+                "compound-interest-calc": "Compound Interest Calculator",
+                "keyword-density-calc": "Keyword Density Checker",
+                "qr-code-calc": "QR Code Generator",
+                "value": "Value:",
+                "percentage": "Percentage (%):",
+                "amount": "Amount:",
+                "gst-rate": "GST Rate (%):",
+                "loan-amount": "Loan Amount:",
+                "interest-rate": "Interest Rate (% per year):",
+                "tenure": "Tenure (months):",
+                "birth-date": "Birth Date:",
+                "start-date": "Start Date:",
+                "end-date": "End Date:",
+                "cost-price": "Cost Price:",
+                "selling-price": "Selling Price:",
+                "length": "Length:",
+                "width": "Width:",
+                "revenue": "Revenue:",
+                "total-cost": "Total Cost:",
+                "principal-amount": "Principal Amount:",
+                "annual-interest-rate": "Annual Interest Rate (%):",
+                "time-years": "Time (years):",
+                "compounds-per-year": "Compounds per Year:",
+                "text": "Text:",
+                "keyword": "Keyword:",
+                "text-url": "Text/URL:",
+                "calculate": "Calculate",
+                "generate": "Generate",
+                "reset": "Reset",
+                "back": "Back to Calculators"
+            },
+            hi: {
+                "simple-calc": "साधारण कैलकुलेटर",
+                "percentage-calc": "प्रतिशत कैलकुलेटर",
+                "gst-calc": "जीएसटी कैलकुलेटर",
+                "emi-calc": "ईएमआई कैलकुलेटर",
+                "age-calc": "आयु कैलकुलेटर",
+                "date-diff-calc": "तारीख अंतर कैलकुलेटर",
+                "profit-loss-calc": "लाभ हानि कैलकुलेटर",
+                "area-calc": "क्षेत्रफल कैलकुलेटर (आयत)",
+                "ecom-profit-calc": "ई-कॉमर्स लाभ कैलकुलेटर",
+                "compound-interest-calc": "चक्रवृद्धि ब्याज कैलकुलेटर",
+                "keyword-density-calc": "कीवर्ड घनत्व जांचकर्ता",
+                "qr-code-calc": "क्यूआर कोड जनरेटर",
+                "value": "मूल्य:",
+                "percentage": "प्रतिशत (%):",
+                "amount": "राशि:",
+                "gst-rate": "जीएसटी दर (%):",
+                "loan-amount": "ऋण राशि:",
+                "interest-rate": "ब्याज दर (% प्रति वर्ष):",
+                "tenure": "अवधि (महीने):",
+                "birth-date": "जन्म तारीख:",
+                "start-date": "प्रारंभ तारीख:",
+                "end-date": "समाप्ति तारीख:",
+                "cost-price": "लागत मूल्य:",
+                "selling-price": "विक्रय मूल्य:",
+                "length": "लंबाई:",
+                "width": "चौड़ाई:",
+                "revenue": "राजस्व:",
+                "total-cost": "कुल लागत:",
+                "principal-amount": "मूल राशि:",
+                "annual-interest-rate": "वार्षिक ब्याज दर (%):",
+                "time-years": "समय (वर्ष):",
+                "compounds-per-year": "प्रति वर्ष चक्रवृद्धि:",
+                "text": "पाठ:",
+                "keyword": "कीवर्ड:",
+                "text-url": "पाठ/यूआरएल:",
+                "calculate": "गणना करें",
+                "generate": "उत्पन्न करें",
+                "reset": "रीसेट करें",
+                "back": "कैलकुलेटर पर वापस जाएं"
+            },
+            es: {
+                "simple-calc": "Calculadora Simple",
+                "percentage-calc": "Calculadora de Porcentajes",
+                "gst-calc": "Calculadora de GST",
+                "emi-calc": "Calculadora de EMI",
+                "age-calc": "Calculadora de Edad",
+                "date-diff-calc": "Calculadora de Diferencia de Fechas",
+                "profit-loss-calc": "Calculadora de Ganancias y Pérdidas",
+                "area-calc": "Calculadora de Área (Rectángulo)",
+                "ecom-profit-calc": "Calculadora de Ganancias de Comercio Electrónico",
+                "compound-interest-calc": "Calculadora de Interés Compuesto",
+                "keyword-density-calc": "Comprobador de Densidad de Palabras Clave",
+                "qr-code-calc": "Generador de Código QR",
+                "value": "Valor:",
+                "percentage": "Porcentaje (%):",
+                "amount": "Cantidad:",
+                "gst-rate": "Tasa de GST (%):",
+                "loan-amount": "Monto del Préstamo:",
+                "interest-rate": "Tasa de Interés (% por año):",
+                "tenure": "Plazo (meses):",
+                "birth-date": "Fecha de Nacimiento:",
+                "start-date": "Fecha de Inicio:",
+                "end-date": "Fecha de Fin:",
+                "cost-price": "Precio de Costo:",
+                "selling-price": "Precio de Venta:",
+                "length": "Longitud:",
+                "width": "Ancho:",
+                "revenue": "Ingresos:",
+                "total-cost": "Costo Total:",
+                "principal-amount": "Monto Principal:",
+                "annual-interest-rate": "Tasa de Interés Anual (%):",
+                "time-years": "Tiempo (años):",
+                "compounds-per-year": "Compuestos por Año:",
+                "text": "Texto:",
+                "keyword": "Palabra Clave:",
+                "text-url": "Texto/URL:",
+                "calculate": "Calcular",
+                "generate": "Generar",
+                "reset": "Restablecer",
+                "back": "Volver a Calculadoras"
+            },
+            fr: {
+                "simple-calc": "Calculatrice Simple",
+                "percentage-calc": "Calculatrice de Pourcentage",
+                "gst-calc": "Calculatrice de GST",
+                "emi-calc": "Calculatrice d'EMI",
+                "age-calc": "Calculatrice d'Âge",
+                "date-diff-calc": "Calculatrice de Différence de Dates",
+                "profit-loss-calc": "Calculatrice de Profit et Perte",
+                "area-calc": "Calculatrice de Surface (Rectangle)",
+                "ecom-profit-calc": "Calculatrice de Profit eCommerce",
+                "compound-interest-calc": "Calculatrice d'Intérêt Composé",
+                "keyword-density-calc": "Vérificateur de Densité de Mots-Clés",
+                "qr-code-calc": "Générateur de Code QR",
+                "value": "Valeur :",
+                "percentage": "Pourcentage (%) :",
+                "amount": "Montant :",
+                "gst-rate": "Taux de GST (%) :",
+                "loan-amount": "Montant du Prêt :",
+                "interest-rate": "Taux d'Intérêt (% par an) :",
+                "tenure": "Durée (mois) :",
+                "birth-date": "Date de Naissance :",
+                "start-date": "Date de Début :",
+                "end-date": "Date de Fin :",
+                "cost-price": "Prix de Revient :",
+                "selling-price": "Prix de Vente :",
+                "length": "Longueur :",
+                "width": "Largeur :",
+                "revenue": "Revenus :",
+                "total-cost": "Coût Total :",
+                "principal-amount": "Montant Principal :",
+                "annual-interest-rate": "Taux d'Intérêt Annuel (%) :",
+                "time-years": "Temps (années) :",
+                "compounds-per-year": "Compositions par An :",
+                "text": "Texte :",
+                "keyword": "Mot-Clé :",
+                "text-url": "Texte/URL :",
+                "calculate": "Calculer",
+                "generate": "Générer",
+                "reset": "Réinitialiser",
+                "back": "Retour aux Calculatrices"
+            }
+        };
+
+        // Currency Symbols
+        const currencies = {
+            USD: "$",
+            INR: "₹",
+            EUR: "€",
+            GBP: "£"
+        };
+
+        let currentCurrency = "USD";
+
+        // Show/Hide Sections
+        function showSection(sectionId) {
+            document.querySelectorAll('.calculator-section, #landing-page, .settings-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Initially show landing page
+        document.getElementById('landing-page').classList.add('active');
+
+        // Language Change
+        function changeLanguage() {
+            const lang = document.getElementById('language').value;
+            document.querySelectorAll('[data-lang-key]').forEach(element => {
+                const key = element.getAttribute('data-lang-key');
+                element.textContent = translations[lang][key];
+            });
+        }
+
+        // Currency Change
+        function changeCurrency() {
+            currentCurrency = document.getElementById('currency').value;
+            // Update currency displays in calculators
+            updateCurrencyDisplays();
+        }
+
+        function updateCurrencyDisplays() {
+            const symbol = currencies[currentCurrency];
+            // Update calculators that use currency (e.g., GST, EMI, Profit Loss, eCommerce Profit, Compound Interest)
+            const calculators = [
+                { resultId: 'gst-result', inputs: ['gst-amount'] },
+                { resultId: 'emi-result', inputs: ['emi-principal'] },
+                { resultId: 'profit-loss-result', inputs: ['cost-price', 'selling-price'] },
+                { resultId: 'ecom-profit-result', inputs: ['ecom-revenue', 'ecom-cost'] },
+                { resultId: 'ci-result', inputs: ['ci-principal'] }
+            ];
+            calculators.forEach(calc => {
+                const resultElement = document.getElementById(calc.resultId);
+                let resultText = resultElement.textContent;
+                if (resultText.includes('0') || resultText.includes('Please')) return; // Skip if no result yet
+                // Replace old currency symbol with new one
+                Object.values(currencies).forEach(oldSymbol => {
+                    resultText = resultText.replace(oldSymbol, symbol);
+                });
+                resultElement.textContent = resultText;
+            });
+        }
+
+        // Theme Change
+        function changeTheme() {
+            const theme = document.getElementById('theme').value;
+            if (theme === 'dark') {
+                document.body.classList.add('dark-theme');
+            } else {
+                document.body.classList.remove('dark-theme');
+            }
+        }
+
+        // Simple Calculator
+        let simpleCalcDisplay = "0";
+        function appendToDisplay(value) {
+            if (simpleCalcDisplay === "0" && value !== ".") {
+                simpleCalcDisplay = value;
+            } else {
+                simpleCalcDisplay += value;
+            }
+            document.getElementById('simple-calc-result').textContent = simpleCalcDisplay;
+        }
+        function calculateSimpleCalc() {
+            try {
+                const result = eval(simpleCalcDisplay);
+                simpleCalcDisplay = result.toString();
+                document.getElementById('simple-calc-result').textContent = `Result: ${result}`;
+            } catch {
+                document.getElementById('simple-calc-result').textContent = "Error";
+                simpleCalcDisplay = "0";
+            }
+        }
+        function resetSimpleCalc() {
+            simpleCalcDisplay = "0";
+            document.getElementById('simple-calc-result').textContent = "0";
+        }
+
+        // Percentage Calculator
+        function calculatePercentage() {
+            const value = parseFloat(document.getElementById('percent-value').value);
+            const rate = parseFloat(document.getElementById('percent-rate').value);
+            if (isNaN(value) || isNaN(rate)) {
+                document.getElementById('percent-result').textContent = "Please enter valid numbers";
+                return;
+            }
+            const result = (value * rate) / 100;
+            document.getElementById('percent-result').textContent = `${result.toFixed(2)} (i.e., ${rate}% of ${value} is ${result.toFixed(2)})`;
+        }
+        function resetPercentage() {
+            document.getElementById('percent-value').value = "";
+            document.getElementById('percent-rate').value = "";
+            document.getElementById('percent-result').textContent = "0";
+        }
+
+        // GST Calculator
+        function calculateGST() {
+            const amount = parseFloat(document.getElementById('gst-amount').value);
+            const rate = parseFloat(document.getElementById('gst-rate').value);
+            if (isNaN(amount) || isNaN(rate)) {
+                document.getElementById('gst-result').textContent = "Please enter valid numbers";
+                return;
+            }
+            const gst = (amount * rate) / 100;
+            const total = amount + gst;
+            const symbol = currencies[currentCurrency];
+            document.getElementById('gst-result').textContent = `GST: ${symbol}${gst.toFixed(2)}, Total Amount: ${symbol}${total.toFixed(2)}`;
+        }
+        function resetGST() {
+            document.getElementById('gst-amount').value = "";
+            document.getElementById('gst-rate').value = "";
+            document.getElementById('gst-result').textContent = "0";
+        }
+
+        // EMI Calculator
+        function calculateEMI() {
+            const principal = parseFloat(document.getElementById('emi-principal').value);
+            const rate = parseFloat(document.getElementById('emi-rate').value) / 12 / 100;
+            const tenure = parseFloat(document.getElementById('emi-tenure').value);
+            if (isNaN(principal) || isNaN(rate) || isNaN(tenure)) {
+                document.getElementById('emi-result').textContent = "Please enter valid numbers";
+                return;
+            }
+            const emi = (principal * rate * Math.pow(1 + rate, tenure)) / (Math.pow(1 + rate, tenure) - 1);
+            const symbol = currencies[currentCurrency];
+            document.getElementById('emi-result').textContent = `Monthly EMI: ${symbol}${emi.toFixed(2)}`;
+        }
+        function resetEMI() {
+            document.getElementById('emi-principal').value = "";
+            document.getElementById('emi-rate').value = "";
+            document.getElementById('emi-tenure').value = "";
+            document.getElementById('emi-result').textContent = "0";
+        }
+
+        // Age Calculator
+        function calculateAge() {
+            const birthDate = new Date(document.getElementById('birth-date').value);
+            const today = new Date();
+            if (!birthDate) {
+                document.getElementById('age-result').textContent = "Please select a date";
+                return;
+            }
+            let years = today.getFullYear() - birthDate.getFullYear();
+            let months = today.getMonth() - birthDate.getMonth();
+            let days = today.getDate() - birthDate.getDate();
+
+            if (days < 0) {
+                months--;
+                days += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            document.getElementById('age-result').textContent = `${years} years, ${months} months, ${days} days`;
+        }
+        function resetAge() {
+            document.getElementById('birth-date').value = "";
+            document.getElementById('age-result').textContent = "0 years, 0 months, 0 days";
+        }
+
+        // Date Difference Calculator
+        function calculateDateDifference() {
+            const date1 = new Date(document.getElementById('date1').value);
+            const date2 = new Date(document.getElementById('date2').value);
+            if (!date1 || !date2) {
+                document.getElementById('date-diff-result').textContent = "Please select both dates";
+                return;
+            }
+            const diffTime = Math.abs(date2 - date1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            document.getElementById('date-diff-result').textContent = `${diffDays} days`;
+        }
+        function resetDateDiff() {
+            document.getElementById('date1').value = "";
+            document.getElementById('date2').value = "";
+            document.getElementById('date-diff-result').textContent = "0 days";
+        }
+
+        // Profit Loss Calculator
+        function calculateProfitLoss() {
+            const costPrice = parseFloat(document.getElementById('cost-price').value);
+            const sellingPrice = parseFloat(document.getElementById('selling-price').value);
+            if (isNaN(costPrice) || isNaN(sellingPrice)) {
+                document.getElementById('profit-loss-result').textContent = "Please enter valid numbers";
+                return;
+            }
+            const profitLoss = sellingPrice - costPrice;
+            const symbol = currencies[currentCurrency];
+            if (profitLoss > 0) {
+                document.getElementById('profit-loss-result').textContent = `Profit: ${symbol}${profitLoss.toFixed(2)}`;
+            } else if (profitLoss < 0) {
+                document.getElementById('profit-loss-result').textContent = `Loss: ${symbol}${Math.abs(profitLoss).toFixed(2)}`;
+            } else {
+                document.getElementById('profit-loss-result').textContent = "No Profit, No Loss";
+            }
+        }
+        function resetProfitLoss() {
+            document.getElementById('cost-price').value = "";
+            document.getElementById('selling-price').value = "";
+            document.getElementById('profit-loss-result').textContent = "0";
+        }
+
+        // Area Calculator
+        function calculateArea() {
+            const length = parseFloat(document.getElementById('area-length').value);
+            const width = parseFloat(document.getElementById('area-width').value);
+            if (isNaN(length) || isNaN(width)) {
+                document.getElementById('area-result').textContent = "Please enter valid numbers";
+                return;
+            }
+            const area = length * width;
+            document.getElementById('area-result').textContent = `${area.toFixed(2)} square units`;
+        }
+        function resetArea() {
+            document.getElementById('area-length').value = "";
+            document.getElementById('area-width').value = "";
+            document.getElementById('area-result').textContent = "0 sq units";
+        }
+
+        // eCommerce Profit Calculator
+        function calculateEcommerceProfit() {
+            const revenue = parseFloat(document.getElementById('ecom-revenue').value);
+            const cost = parseFloat(document.getElementById('ecom-cost').value);
+            if (isNaN(revenue) || isNaN(cost)) {
+                document.getElementById('ecom-profit-result').textContent = "Please enter valid numbers";
+                return;
+            }
+            const profit = revenue - cost;
+            const symbol = currencies[currentCurrency];
+            document.getElementById('ecom-profit-result').textContent = `Profit: ${symbol}${profit.toFixed(2)}`;
+        }
+        function resetEcomProfit() {
+            document.getElementById('ecom-revenue').value = "";
+            document.getElementById('ecom-cost').value = "";
+            document.getElementById('ecom-profit-result').textContent = "0";
+        }
+
+        // Compound Interest Calculator
+        function calculateCompoundInterest() {
+            const principal = parseFloat(document.getElementById('ci-principal').value);
+            const rate = parseFloat(document.getElementById('ci-rate').value) / 100;
+            const time = parseFloat(document.getElementById('ci-time').value);
+            const compounds = parseFloat(document.getElementById('ci-compound').value);
+            if (isNaN(principal) || isNaN(rate) || isNaN(time) || isNaN(compounds)) {
+                document.getElementById('ci-result').textContent = "Please enter valid numbers";
+                return;
+            }
+            const amount = principal * Math.pow(1 + rate / compounds, compounds * time);
+            const interest = amount - principal;
+            const symbol = currencies[currentCurrency];
+            document.getElementById('ci-result').textContent = `Total Amount: ${symbol}${amount.toFixed(2)}, Interest: ${symbol}${interest.toFixed(2)}`;
+        }
+        function resetCompoundInterest() {
+            document.getElementById('ci-principal').value = "";
+            document.getElementById('ci-rate').value = "";
+            document.getElementById('ci-time').value = "";
+            document.getElementById('ci-compound').value = "";
+            document.getElementById('ci-result').textContent = "0";
+        }
+
+        // Keyword Density Checker
+        function calculateKeywordDensity() {
+            const text = document.getElementById('keyword-text').value.toLowerCase();
+            const keyword = document.getElementById('keyword').value.toLowerCase();
+            if (!text || !keyword) {
+                document.getElementById('keyword-density-result').textContent = "Please enter text and keyword";
+                return;
+            }
+            const words = text.split(/\s+/).filter(word => word.length > 0);
+            const keywordCount = words.filter(word => word === keyword).length;
+            const density = (keywordCount / words.length) * 100;
+            document.getElementById('keyword-density-result').textContent = `${density.toFixed(2)}%`;
+        }
+        function resetKeywordDensity() {
+            document.getElementById('keyword-text').value = "";
+            document.getElementById('keyword').value = "";
+            document.getElementById('keyword-density-result').textContent = "0%";
+        }
+
+        // QR Code Generator
+        let qrCode = null;
+        function generateQRCode() {
+            const qrText = document.getElementById('qr-text').value;
+            const qrDiv = document.getElementById('qrCode');
+            if (!qrText) {
+                qrDiv.innerHTML = "Please enter text or URL";
+                return;
+            }
+            qrDiv.innerHTML = "";
+            qrCode = new QRCode(qrDiv, {
+                text: qrText,
+                width: 128,
+                height: 128
+            });
+        }
+        function resetQRCode() {
+            document.getElementById('qr-text').value = "";
+            document.getElementById('qrCode').innerHTML = "";
+        }
+    </script>
+</body>
+</html>
